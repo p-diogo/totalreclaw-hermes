@@ -1,0 +1,95 @@
+name: smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PyYAML (for manifest validation)
+        run: python -m pip install --upgrade pip pyyaml
+
+      - name: Validate plugin.yaml
+        run: |
+          python <<'PY'
+          import sys
+          import yaml
+
+          REQUIRED_TOP = {"manifest_version", "name", "version", "description", "provides_tools"}
+          REQUIRED_TOOLS = {
+              "totalreclaw_remember",
+              "totalreclaw_recall",
+              "totalreclaw_forget",
+              "totalreclaw_export",
+              "totalreclaw_status",
+              "totalreclaw_pair",
+              "totalreclaw_pin",
+              "totalreclaw_unpin",
+              "totalreclaw_import_from",
+              "totalreclaw_import_batch",
+              "totalreclaw_upgrade",
+              "totalreclaw_debrief",
+          }
+
+          with open("plugin.yaml") as fh:
+              manifest = yaml.safe_load(fh)
+
+          missing_top = REQUIRED_TOP - manifest.keys()
+          if missing_top:
+              print(f"plugin.yaml missing required top-level keys: {sorted(missing_top)}", file=sys.stderr)
+              sys.exit(1)
+
+          tools = set(manifest.get("provides_tools") or [])
+          missing_tools = REQUIRED_TOOLS - tools
+          if missing_tools:
+              print(f"plugin.yaml provides_tools missing: {sorted(missing_tools)}", file=sys.stderr)
+              sys.exit(1)
+
+          # Every tool entry must be a non-empty string
+          for t in tools:
+              if not isinstance(t, str) or not t:
+                  print(f"plugin.yaml provides_tools has invalid entry: {t!r}", file=sys.stderr)
+                  sys.exit(1)
+
+          print(f"plugin.yaml OK — {len(tools)} tools declared, manifest_version={manifest['manifest_version']}, version={manifest['version']}")
+          PY
+
+      - name: Install totalreclaw from PyPI (pre-release)
+        run: python -m pip install --pre totalreclaw
+
+      - name: Sanity-check register() is callable
+        run: |
+          python <<'PY'
+          import importlib.util
+          import pathlib
+          import sys
+
+          plugin_path = pathlib.Path("__init__.py").resolve()
+          spec = importlib.util.spec_from_file_location("totalreclaw_hermes_plugin", plugin_path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+
+          if not callable(getattr(module, "register", None)):
+              print("register attribute is not callable", file=sys.stderr)
+              sys.exit(1)
+
+          print("register is callable:", callable(module.register))
+          PY
+
+      - name: Summary
+        run: echo "Smoke passed — plugin.yaml valid, totalreclaw importable, register() callable."

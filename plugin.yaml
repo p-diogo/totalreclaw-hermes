@@ -1,0 +1,26 @@
+manifest_version: 1
+name: totalreclaw
+version: 0.1.0
+description: TotalReclaw encrypted memory — QR-pair recovery phrase setup + persistent memory via remember/recall tools
+author: TotalReclaw Team
+homepage: https://github.com/p-diogo/totalreclaw
+requires:
+  - totalreclaw
+provides_tools:
+  - totalreclaw_remember
+  - totalreclaw_recall
+  - totalreclaw_forget
+  - totalreclaw_export
+  - totalreclaw_status
+  - totalreclaw_pair
+  - totalreclaw_pin
+  - totalreclaw_unpin
+  - totalreclaw_import_from
+  - totalreclaw_import_batch
+  - totalreclaw_upgrade
+  - totalreclaw_debrief
+provides_hooks:
+  - on_session_start
+  - pre_llm_call
+  - post_llm_call
+  - on_session_end

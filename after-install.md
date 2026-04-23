@@ -1,11 +1,9 @@
-TotalReclaw Hermes plugin installed.
+TotalReclaw Hermes plugin installed (rc.10+ self-bootstraps).
 
 Next steps:
-  1. Install the backing Python package (if not already): pip install --pre totalreclaw
-  2. Restart the gateway: hermes gateway restart
-  3. Paste this into your chat: "Set up TotalReclaw"
-  4. The agent will give you a URL + 6-digit PIN. Open the URL, enter your recovery phrase in the browser, confirm the PIN.
-  5. Done — try "remember X" and "recall what I said about X" in future conversations.
+  1. Restart the gateway: hermes gateway restart
+  2. Ask your agent: "Set up TotalReclaw"
+  3. The agent gives you a URL + 6-digit PIN to open in your browser.
 
 Your recovery phrase never crosses the LLM context — it's encrypted browser-side.
 

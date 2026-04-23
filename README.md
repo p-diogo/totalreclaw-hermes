@@ -12,16 +12,19 @@ hermes plugins install p-diogo/totalreclaw-hermes
 
 ## Post-install
 
-The Git plugin is a thin wrapper that delegates to the `totalreclaw` Python
-package. Install it inside the same environment Hermes runs from:
+rc.10+ self-bootstraps on first `hermes gateway restart`. The plugin installs
+the `totalreclaw` Python package into the Hermes venv (bypassing user-site
+if `ENABLE_USER_SITE=False`), bootstraps pip via `ensurepip` if the venv was
+created `--without-pip`, and verifies `~/.totalreclaw/` is writable by the
+Hermes runtime user. No manual `pip install` is required.
 
 ```bash
-pip install --pre totalreclaw
 hermes gateway restart
 ```
 
-If `totalreclaw` is already installed in your Hermes venv, only the restart
-is needed.
+Any bootstrap failure surfaces as a `RuntimeError` with actionable guidance
+(e.g. if `~/.totalreclaw/` is root-owned under a Docker volume mount, the
+error includes the exact `chown` command to run from the host).
 
 ## Setup
 

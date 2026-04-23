@@ -93,3 +93,55 @@ jobs:
 
       - name: Summary
         run: echo "Smoke passed — plugin.yaml valid, totalreclaw importable, register() callable."
+
+  bootstrap-venv-without-pip:
+    # rc.10 regression guard: fresh venv WITHOUT pip must still bootstrap itself
+    # via ensurepip inside __init__.py and end up with totalreclaw importable.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create venv without pip
+        run: python -m venv --without-pip /tmp/testvenv
+
+      - name: Confirm venv lacks pip
+        run: |
+          if /tmp/testvenv/bin/python -c "import pip" 2>/dev/null; then
+            echo "venv unexpectedly has pip — smoke cannot exercise rc.10 bootstrap" >&2
+            exit 1
+          fi
+          echo "venv has no pip — as expected"
+
+      - name: Trigger plugin bootstrap via import
+        env:
+          HOME: /tmp/fake-home
+        run: |
+          mkdir -p /tmp/fake-home
+          /tmp/testvenv/bin/python <<'PY'
+          import importlib.util
+          import pathlib
+          import sys
+
+          plugin_path = pathlib.Path("__init__.py").resolve()
+          spec = importlib.util.spec_from_file_location("totalreclaw_hermes_plugin", plugin_path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)  # runs _bootstrap()
+
+          # After _bootstrap: pip should now exist AND totalreclaw should import
+          import pip  # noqa: F401
+          import totalreclaw  # noqa: F401
+          assert callable(module.register), "register is not callable after bootstrap"
+          print("rc.10 bootstrap OK — pip present, totalreclaw importable, register callable")
+          PY
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf /tmp/testvenv /tmp/fake-home

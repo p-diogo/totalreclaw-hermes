@@ -1,7 +1,7 @@
 manifest_version: 1
 name: totalreclaw
-version: 0.1.0
-description: TotalReclaw encrypted memory — QR-pair recovery phrase setup + persistent memory via remember/recall tools
+version: 0.2.0
+description: TotalReclaw encrypted memory — QR-pair recovery phrase setup + persistent memory via remember/recall tools. Self-bootstraps the Python package on plugin load (rc.10+).
 author: TotalReclaw Team
 homepage: https://github.com/p-diogo/totalreclaw
 requires:

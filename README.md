@@ -61,6 +61,22 @@ recall what you know about my meeting preferences
 
 RC builds additionally expose `totalreclaw_report_qa_bug` (hidden in stable).
 
+## Bundled Skill
+
+The plugin ships a `SKILL.md` that is automatically installed into
+`~/.hermes/skills/devops/totalreclaw-memory/` on bootstrap. This skill is
+loaded into the agent's context on every turn and teaches it:
+
+- **When to use `totalreclaw_remember`** vs the built-in `memory` tool (always
+  prefer TotalReclaw for durable user facts, preferences, and decisions)
+- **When to use `totalreclaw_recall`** vs built-in memory (fallback for any
+  fact not in working memory, and the canonical store for all user data)
+- **Cross-platform awareness** — TotalReclaw may hold data from other AI tools
+  (ChatGPT, Gemini, OpenClaw) and imported conversation history
+- **Phrase safety rules** — never ask the user to paste a recovery phrase in chat
+
+The skill install is idempotent and auto-updates on plugin upgrade.
+
 ## Why a separate Git plugin?
 
 Hermes 2026.4.16+ discovers plugins via Git clone into

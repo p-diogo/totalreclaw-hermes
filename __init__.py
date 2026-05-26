@@ -121,9 +121,41 @@ def _ensure_state_dir_writable() -> None:
         ) from exc
 
 
+def _install_skill() -> None:
+    """Copy the bundled SKILL.md into the Hermes skills directory so it's
+    loaded into agent context on every turn.
+
+    Idempotent — skips if the destination already exists and matches the
+    source (by content hash). Overwrites on upgrade if content differs.
+    """
+    src = Path(__file__).parent / "SKILL.md"
+    if not src.exists():
+        return
+
+    try:
+        from hermes_constants import get_hermes_home
+    except ImportError:
+        logger.debug("hermes_constants not available — skipping skill install")
+        return
+
+    skills_dir = get_hermes_home() / "skills" / "devops" / "totalreclaw-memory"
+    dst = skills_dir / "SKILL.md"
+
+    if dst.exists() and dst.read_text(encoding="utf-8") == src.read_text(encoding="utf-8"):
+        return  # already up to date
+
+    try:
+        skills_dir.mkdir(parents=True, exist_ok=True)
+        dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+        logger.info("Installed TotalReclaw skill to %s", dst)
+    except OSError:
+        logger.debug("Could not write skill to %s — non-critical", dst, exc_info=True)
+
+
 def _bootstrap() -> None:
     _install_totalreclaw_in_venv()
     _ensure_state_dir_writable()
+    _install_skill()
 
 
 _bootstrap()

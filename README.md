@@ -61,6 +61,47 @@ recall what you know about my meeting preferences
 
 RC builds additionally expose `totalreclaw_report_qa_bug` (hidden in stable).
 
+## Bundled Skill
+
+On bootstrap, the plugin auto-installs the canonical TotalReclaw SKILL.md
+into `~/.hermes/skills/memory/totalreclaw/SKILL.md` so the Hermes skill
+loader picks it up. Hermes loads SKILL.md files via `rglob` over
+`<HERMES_HOME>/skills/**/SKILL.md` on every turn — without the file at
+that path, the agent has no behavioural guidance on when to prefer
+TotalReclaw tools over Hermes' built-in `memory`.
+
+**Source of truth: the installed `totalreclaw` Python package.** The
+SKILL.md ships in the PyPI wheel as `package_data` (see
+`[tool.setuptools.package-data]` in `pyproject.toml`). On every plugin
+bootstrap, `__init__.py` reads it via
+`importlib.resources.files("totalreclaw.hermes").joinpath("SKILL.md")`
+and writes it to the skills dir. Idempotent — skip if destination
+content already matches; overwrite on upgrade if it differs.
+
+Why route through the Python package and not ship a SKILL.md in this
+Git repo: prior to 2026-05-28 the canonical SKILL.md lived in this
+repo, drifted from the Python package's version across 5 RC cycles
+(tier copy, recall behaviour, restart-branch table, phrase-safety
+hardening), and Hermes-the-agent improvised stub versions when its
+context dropped the original. Single source of truth fixes that.
+
+Legacy location `~/.hermes/skills/devops/totalreclaw-memory/` (the
+agent's improvised destination on a 2026-05-26 commit) is `rm -rf`'d
+on bootstrap if present.
+
+Behavioural guidance the agent gets from the skill includes:
+
+- When to use `totalreclaw_remember` vs the built-in `memory` tool
+  (always prefer TotalReclaw for durable user facts, preferences, decisions)
+- When to use `totalreclaw_recall` (per the rc.5 recall rule — call it
+  on every recall query the user issues, even when context appears to
+  hold the answer)
+- Tier + pricing canon (2.4.1+): 250 / 1,500 caps on Gnosis mainnet,
+  no "unlimited" claim, no "free trial" claim
+- Restart-branch matrix by surface (Telegram / docker CLI / native CLI / ask)
+- Phrase safety: never ask user to paste recovery phrase in chat; if
+  they do, treat as compromised and re-pair
+
 ## Why a separate Git plugin?
 
 Hermes 2026.4.16+ discovers plugins via Git clone into

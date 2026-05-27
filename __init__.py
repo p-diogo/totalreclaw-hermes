@@ -70,22 +70,40 @@ def _install_totalreclaw_in_venv() -> None:
     except ImportError:
         pass
     _ensure_pip_in_venv()
-    subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--pre",
-            "--no-cache-dir",
-            "--index-url",
-            "https://pypi.org/simple/",
-            "--no-warn-script-location",
-            "totalreclaw",
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+    cmd = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--pre",
+        "--no-cache-dir",
+        "--index-url",
+        "https://pypi.org/simple/",
+        "--no-warn-script-location",
+        "totalreclaw",
+    ]
+    # 2026-05-28: capture stderr instead of dropping to DEVNULL. CI's
+    # bootstrap-venv-without-pip job has been failing with no diagnostic
+    # info — the underlying pip error needs to reach the operator. Still
+    # check_call (raises CalledProcessError on non-zero), but stderr is
+    # captured + re-raised in the RuntimeError message.
+    proc = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
     )
+    if proc.returncode != 0:
+        # Trim very long pip outputs to keep the error message readable.
+        stderr_tail = (proc.stderr or "").strip()[-2000:]
+        stdout_tail = (proc.stdout or "").strip()[-500:]
+        raise RuntimeError(
+            f"pip install totalreclaw failed (exit {proc.returncode}). "
+            f"Command: {' '.join(cmd)}\n"
+            f"stderr (last 2KB):\n{stderr_tail}\n"
+            f"stdout (last 500B):\n{stdout_tail}"
+        )
 
 
 def _ensure_state_dir_writable() -> None:
@@ -121,9 +139,89 @@ def _ensure_state_dir_writable() -> None:
         ) from exc
 
 
+def _install_skill() -> None:
+    """Copy the authoritative SKILL.md from the installed ``totalreclaw``
+    Python package into the Hermes skills directory so it loads into agent
+    context on every turn.
+
+    Source-of-truth design (2026-05-28): the SKILL.md lives ONLY in the
+    Python package at ``totalreclaw/hermes/SKILL.md`` (shipped via
+    ``[tool.setuptools.package-data]`` in the wheel). This plugin repo
+    no longer carries its own SKILL.md — that file historically drifted
+    from the canonical version (5 RC cycles of tier copy, recall
+    behaviour, restart-branch table, phrase-safety hardening all landed
+    in the python package but never reached Hermes' skill loader). See
+    p-diogo/totalreclaw-internal#335 for full context.
+
+    Destination ``<HERMES_HOME>/skills/memory/totalreclaw/SKILL.md`` —
+    the ``memory`` category matches upstream Hermes' bundled memory-
+    provider conventions (Honcho/Byterover/OpenViking).
+
+    Cleanup: removes the legacy
+    ``<HERMES_HOME>/skills/devops/totalreclaw-memory/`` path if present
+    (Hermes-the-agent improvised that location in a 2026-05-26 commit
+    on this repo's ``feat/skill-md`` branch before the canonical
+    mechanism existed; ``rm -rf`` only that exact subdir).
+
+    Idempotent — skips write if destination content matches source.
+    Non-fatal: any OSError is logged + swallowed so plugin load never
+    fails on a SKILL.md write hiccup.
+    """
+    try:
+        from importlib.resources import files as _resource_files
+    except ImportError:  # pragma: no cover — Python <3.9
+        logger.debug("importlib.resources.files unavailable — skipping skill install")
+        return
+
+    try:
+        src_text = _resource_files("totalreclaw.hermes").joinpath("SKILL.md").read_text(encoding="utf-8")
+    except (ModuleNotFoundError, FileNotFoundError, OSError) as exc:
+        # `totalreclaw` not installed yet, or its SKILL.md package-data missing.
+        # Bootstrap order ensures the wheel is installed before this runs (see
+        # _install_totalreclaw_in_venv above) — if we still can't read SKILL.md,
+        # log + skip rather than crashing plugin load.
+        logger.debug("Could not read totalreclaw.hermes/SKILL.md from package: %s", exc)
+        return
+
+    try:
+        from hermes_constants import get_hermes_home
+    except ImportError:
+        logger.debug("hermes_constants not available — skipping skill install")
+        return
+
+    hermes_home = get_hermes_home()
+
+    # Cleanup legacy path. The agent-improvised location was
+    # ``skills/devops/totalreclaw-memory/``. Remove only that exact subdir
+    # if it exists, leave neighbouring skills alone.
+    legacy_dir = hermes_home / "skills" / "devops" / "totalreclaw-memory"
+    if legacy_dir.exists():
+        try:
+            import shutil
+            shutil.rmtree(legacy_dir)
+            logger.info("Removed legacy TotalReclaw skill location %s", legacy_dir)
+        except OSError as exc:
+            logger.debug("Could not remove legacy skill dir %s: %s", legacy_dir, exc)
+        # Don't bail on cleanup failure — proceed to install the new location.
+
+    skills_dir = hermes_home / "skills" / "memory" / "totalreclaw"
+    dst = skills_dir / "SKILL.md"
+
+    if dst.exists() and dst.read_text(encoding="utf-8") == src_text:
+        return  # already up to date
+
+    try:
+        skills_dir.mkdir(parents=True, exist_ok=True)
+        dst.write_text(src_text, encoding="utf-8")
+        logger.info("Installed TotalReclaw skill to %s", dst)
+    except OSError:
+        logger.debug("Could not write skill to %s — non-critical", dst, exc_info=True)
+
+
 def _bootstrap() -> None:
     _install_totalreclaw_in_venv()
     _ensure_state_dir_writable()
+    _install_skill()
 
 
 _bootstrap()

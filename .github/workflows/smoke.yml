@@ -17,9 +17,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
+        # 2026-05-28: pinned to 3.12 to match production. See bootstrap-venv-without-pip job below for rationale.
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install PyYAML (for manifest validation)
         run: python -m pip install --upgrade pip pyyaml
@@ -105,9 +106,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
+        # 2026-05-28: pinned to 3.12 to match production Hermes deployments
+        # (the pop-os native install uses 3.12 + Docker tr-qa-stack-hermes
+        # ships 3.12). `totalreclaw-core` currently only publishes cp312
+        # wheels — Python 3.11 falls back to sdist which needs cargo/rustup
+        # set up. If the support floor moves to >=3.12, drop the comment;
+        # if cp311 wheels are added, this can revert to "3.11" to widen
+        # coverage.
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Create venv without pip
         run: python -m venv --without-pip /tmp/testvenv

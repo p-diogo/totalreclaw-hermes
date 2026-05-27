@@ -70,22 +70,40 @@ def _install_totalreclaw_in_venv() -> None:
     except ImportError:
         pass
     _ensure_pip_in_venv()
-    subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--pre",
-            "--no-cache-dir",
-            "--index-url",
-            "https://pypi.org/simple/",
-            "--no-warn-script-location",
-            "totalreclaw",
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+    cmd = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--pre",
+        "--no-cache-dir",
+        "--index-url",
+        "https://pypi.org/simple/",
+        "--no-warn-script-location",
+        "totalreclaw",
+    ]
+    # 2026-05-28: capture stderr instead of dropping to DEVNULL. CI's
+    # bootstrap-venv-without-pip job has been failing with no diagnostic
+    # info — the underlying pip error needs to reach the operator. Still
+    # check_call (raises CalledProcessError on non-zero), but stderr is
+    # captured + re-raised in the RuntimeError message.
+    proc = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
     )
+    if proc.returncode != 0:
+        # Trim very long pip outputs to keep the error message readable.
+        stderr_tail = (proc.stderr or "").strip()[-2000:]
+        stdout_tail = (proc.stdout or "").strip()[-500:]
+        raise RuntimeError(
+            f"pip install totalreclaw failed (exit {proc.returncode}). "
+            f"Command: {' '.join(cmd)}\n"
+            f"stderr (last 2KB):\n{stderr_tail}\n"
+            f"stdout (last 500B):\n{stdout_tail}"
+        )
 
 
 def _ensure_state_dir_writable() -> None:

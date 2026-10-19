@@ -113,10 +113,10 @@ Hermes-native surface; all the logic stays in the maintained
 
 ## Links
 
-- Main repo: <https://github.com/p-diogo/totalreclaw>
-- Setup guide: <https://github.com/p-diogo/totalreclaw/blob/main/docs/guides/hermes-setup.md>
+- Main repo: <https://github.com/graphprotocol/totalreclaw>
+- Setup guide: <https://github.com/graphprotocol/totalreclaw/blob/main/docs/guides/hermes-setup.md>
 - PyPI package: <https://pypi.org/project/totalreclaw/>
-- Issues: <https://github.com/p-diogo/totalreclaw/issues>
+- Issues: <https://github.com/graphprotocol/totalreclaw/issues>
 
 ## License
 

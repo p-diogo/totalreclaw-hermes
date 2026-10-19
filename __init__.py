@@ -21,8 +21,8 @@ than failing silently. Each step is idempotent — re-running the bootstrap
 on a healthy install is a no-op.
 
 See:
-- https://github.com/p-diogo/totalreclaw
-- https://github.com/p-diogo/totalreclaw/blob/main/docs/guides/hermes-setup.md
+- https://github.com/graphprotocol/totalreclaw
+- https://github.com/graphprotocol/totalreclaw/blob/main/docs/guides/hermes-setup.md
 """
 from __future__ import annotations
 
@@ -151,7 +151,7 @@ def _install_skill() -> None:
     from the canonical version (5 RC cycles of tier copy, recall
     behaviour, restart-branch table, phrase-safety hardening all landed
     in the python package but never reached Hermes' skill loader). See
-    p-diogo/totalreclaw-internal#335 for full context.
+    graphprotocol/totalreclaw-internal#335 for full context.
 
     Destination ``<HERMES_HOME>/skills/memory/totalreclaw/SKILL.md`` —
     the ``memory`` category matches upstream Hermes' bundled memory-

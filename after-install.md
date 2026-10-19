@@ -7,4 +7,4 @@ Next steps:
 
 Your recovery phrase never crosses the LLM context — it's encrypted browser-side.
 
-Docs: https://github.com/p-diogo/totalreclaw/blob/main/docs/guides/hermes-setup.md
+Docs: https://github.com/graphprotocol/totalreclaw/blob/main/docs/guides/hermes-setup.md

@@ -3,7 +3,7 @@ name: totalreclaw
 version: 0.3.0
 description: TotalReclaw encrypted memory — QR-pair recovery phrase setup + persistent memory via remember/recall tools. Self-bootstraps the Python package on plugin load and auto-installs the canonical SKILL.md from the package (0.3.0+).
 author: TotalReclaw Team
-homepage: https://github.com/p-diogo/totalreclaw
+homepage: https://github.com/graphprotocol/totalreclaw
 requires:
   - totalreclaw
 provides_tools:

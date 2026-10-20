@@ -81,6 +81,11 @@ def _install_totalreclaw_in_venv() -> None:
         "https://pypi.org/simple/",
         "--no-warn-script-location",
         "totalreclaw",
+        # `--pre` applies to every dependency, not just totalreclaw. In a venv
+        # without httpx it resolves the httpx 1.0 pre-release, which drops
+        # `httpx.HTTPStatusError` and makes `import totalreclaw` (<= 2.5.2)
+        # fail. totalreclaw >= 2.5.3 caps httpx itself; this covers older pins.
+        "httpx<1",
     ]
     # 2026-05-28: capture stderr instead of dropping to DEVNULL. CI's
     # bootstrap-venv-without-pip job has been failing with no diagnostic
